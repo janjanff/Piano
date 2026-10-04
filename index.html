@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Piano Roll</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #20272d;
+    color: #e8edf0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+#app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =========================
+   TOP TOOLBAR
+========================= */
+
+.toolbar {
+    height: 58px;
+    background: #3b454c;
+    border-bottom: 1px solid #11181d;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    user-select: none;
+}
+
+.tool {
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #e9eef1;
+    font-size: 21px;
+    cursor: pointer;
+}
+
+.tool:hover {
+    background: #515c64;
+}
+
+.tool.active {
+    background: #5b6670;
+    color: #ffd43b;
+}
+
+.play {
+    color: #8ee39b;
+}
+
+.stop {
+    color: #ff7777;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 32px;
+    background: #657078;
+    margin: 0 5px;
+}
+
+.title {
+    margin-left: auto;
+    margin-right: 8px;
+    font-size: 15px;
+    color: #dce1e4;
+}
+
+/* =========================
+   CONTROL BAR
+========================= */
+
+.controls {
+    min-height: 48px;
+    background: #2e373d;
+    border-bottom: 1px solid #11181d;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    flex-wrap: wrap;
+}
+
+.controls label {
+    font-size: 12px;
+    color: #aeb7bc;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.number {
+    width: 70px;
+    background: #1e252a;
+    color: white;
+    border: 1px solid #59636a;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+select {
+    background: #1e252a;
+    color: white;
+    border: 1px solid #59636a;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+.small-button {
+    background: #3e494f;
+    color: white;
+    border: 1px solid #68747b;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.small-button:hover {
+    background: #536068;
+}
+
+.volume {
+    width: 100px;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+}
+
+/* =========================
+   PIANO
+========================= */
+
+.piano {
+    width: 94px;
+    min-width: 94px;
+    background: #222a2f;
+    border-right: 2px solid #11171b;
+    overflow: hidden;
+}
+
+.key {
+    height: 48px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 11px;
+    user-select: none;
+}
+
+.key.white {
+    background: linear-gradient(#f7f7f7, #d7d7d7);
+    color: #303030;
+    border-bottom: 1px solid #8c8c8c;
+}
+
+.key.black {
+    height: 32px;
+    background: linear-gradient(#30353a, #101417);
+    color: #ddd;
+    border-bottom: 1px solid #000;
+    margin-top: -8px;
+    margin-bottom: -8px;
+    z-index: 4;
+    width: 70px;
+    margin-left: 0;
+    border-radius: 0 3px 3px 0;
+}
+
+.key.active {
+    background: #e6b93f !important;
+    color: #111 !important;
+}
+
+/* =========================
+   ROLL
+========================= */
+
+.roll-container {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    position: relative;
+    background: #303b42;
+}
+
+.roll {
+    position: relative;
+    min-width: 1800px;
+    height: 100%;
+}
+
+/* Timeline */
+
+.timeline {
+    height: 34px;
+    background: #263036;
+    border-bottom: 1px solid #11171b;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.bar {
+    position: absolute;
+    top: 0;
+    height: 34px;
+    border-left: 2px solid #647078;
+    padding-left: 5px;
+    color: #d5dade;
+    font-size: 12px;
+    line-height: 34px;
+}
+
+/* Grid */
+
+.grid {
+    position: absolute;
+    left: 0;
+    top: 34px;
+    right: 0;
+    bottom: 0;
+    background:
+        repeating-linear-gradient(
+            to right,
+            transparent 0,
+            transparent 74px,
+            rgba(255,255,255,.055) 75px,
+            transparent 76px
+        ),
+        repeating-linear-gradient(
+            to right,
+            transparent 0,
+            transparent 299px,
+            rgba(255,255,255,.15) 300px,
+            transparent 302px
+        ),
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255,255,255,.035) 0,
+            rgba(255,255,255,.035) 1px,
+            transparent 1px,
+            transparent 48px
+        );
+}
+
+/* Octave row backgrounds */
+
+.row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 48px;
+    border-bottom: 1px solid rgba(0,0,0,.25);
+}
+
+.row.black {
+    background: rgba(0,0,0,.12);
+}
+
+/* =========================
+   NOTES
+========================= */
+
+.note {
+    position: absolute;
+    height: 38px;
+    background: #ff7d82;
+    border: 1px solid #ffb0b3;
+    border-radius: 3px;
+    color: #41171a;
+    font-size: 12px;
+    padding: 8px 7px;
+    cursor: grab;
+    z-index: 10;
+    user-select: none;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.note:hover {
+    filter: brightness(1.08);
+}
+
+.note.selected {
+    background: #ffb1b4;
+    border-color: white;
+    box-shadow: 0 0 0 1px #fff;
+}
+
+.note .resize {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 7px;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+/* Play cursor */
+
+.playhead {
+    position: absolute;
+    top: 34px;
+    bottom: 0;
+    width: 2px;
+    background: #ffcc33;
+    z-index: 30;
+    pointer-events: none;
+    box-shadow: 0 0 5px rgba(255,204,51,.6);
+}
+
+/* =========================
+   HELP
+========================= */
+
+.help {
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    background: rgba(15,20,23,.9);
+    border: 1px solid #58636a;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    color: #bfc7ca;
+    z-index: 40;
+}
+
+@media(max-width:600px) {
+    .toolbar {
+        height: 52px;
+        gap: 2px;
+        padding: 4px;
+    }
+
+    .tool {
+        width: 36px;
+        height: 36px;
+    }
+
+    .title {
+        display: none;
+    }
+
+    .controls {
+        font-size: 11px;
+    }
+
+    .piano {
+        width: 72px;
+        min-width: 72px;
+    }
+
+    .key {
+        font-size: 9px;
+        padding-right: 5px;
+    }
+
+    .key.black {
+        width: 55px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- TOP BAR -->
+    <div class="toolbar">
+
+        <button class="tool" id="menuBtn" title="Menu">☰</button>
+        <button class="tool" id="undoBtn" title="Undo">↶</button>
+        <button class="tool" id="redoBtn" title="Redo">↷</button>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="tool active" id="drawBtn" title="Draw">✎</button>
+        <button class="tool" id="eraseBtn" title="Erase">⌫</button>
+        <button class="tool" id="snapBtn" title="Snap">⌗</button>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="tool play" id="playBtn" title="Play">▶</button>
+        <button class="tool stop" id="stopBtn" title="Stop">■</button>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="tool" id="clearBtn" title="Clear">✕</button>
+
+        <div class="title">
+            Piano roll — Web Piano
+        </div>
+
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+
+        <div class="control-group">
+            <label>BPM</label>
+            <input id="bpm" class="number" type="number" min="40" max="240" value="120">
+        </div>
+
+        <div class="control-group">
+            <label>Length</label>
+            <select id="length">
+                <option value="75">1/4</option>
+                <option value="37.5">1/8</option>
+                <option value="150">1/2</option>
+                <option value="300">1 bar</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Instrument</label>
+            <select id="instrument">
+                <option value="piano">Piano</option>
+                <option value="synth">Synth</option>
+                <option value="bell">Bell</option>
+                <option value="bass">Bass</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Volume</label>
+            <input id="volume" class="volume" type="range" min="0" max="1" step=".01" value=".65">
+        </div>
+
+        <button class="small-button" id="metronome">Metronome: OFF</button>
+
+        <button class="small-button" id="addDemo">
+            Add Demo
+        </button>
+
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="piano" id="piano"></div>
+
+        <div class="roll-container" id="rollContainer">
+
+            <div class="roll" id="roll">
+
+                <div class="timeline" id="timeline"></div>
+
+                <div class="grid" id="grid"></div>
+
+                <div class="playhead" id="playhead"></div>
+
+            </div>
+
+            <div class="help">
+                Click = note · Drag = move · Edge = resize · Right click = delete
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+/* =========================================================
+   WEB PIANO ROLL
+========================================================= */
+
+const piano = document.getElementById("piano");
+const roll = document.getElementById("roll");
+const grid = document.getElementById("grid");
+const timeline = document.getElementById("timeline");
+const playhead = document.getElementById("playhead");
+
+const bpmInput = document.getElementById("bpm");
+const lengthInput = document.getElementById("length");
+const instrumentInput = document.getElementById("instrument");
+const volumeInput = document.getElementById("volume");
+
+const playBtn = document.getElementById("playBtn");
+const stopBtn = document.getElementById("stopBtn");
+const clearBtn = document.getElementById("clearBtn");
+const addDemoBtn = document.getElementById("addDemo");
+const metronomeBtn = document.getElementById("metronome");
+
+const drawBtn = document.getElementById("drawBtn");
+const eraseBtn = document.getElementById("eraseBtn");
+const snapBtn = document.getElementById("snapBtn");
+
+/* =========================================================
+   NOTES
+========================================================= */
+
+const noteNames = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B"
+];
+
+const blackNotes = new Set([
+    "C#",
+    "D#",
+    "F#",
+    "G#",
+    "A#"
+]);
+
+const startOctave = 4;
+const octaveCount = 3;
+
+let rows = [];
+
+for (let octave = startOctave + octaveCount - 1; octave >= startOctave; octave--) {
+
+    for (let i = 11; i >= 0; i--) {
+
+        rows.push({
+            name: noteNames[i] + octave,
+            note: noteNames[i],
+            octave: octave,
+            midi: (octave + 1) * 12 + i
+        });
+
+    }
+}
+
+/* =========================================================
+   BUILD PIANO
+========================================================= */
+
+rows.forEach((r, index) => {
+
+    const key = document.createElement("div");
+
+    key.className =
+        "key " +
+        (blackNotes.has(r.note) ? "black" : "white");
+
+    key.textContent = r.name;
+
+    key.dataset.midi = r.midi;
+
+    key.addEventListener("pointerdown", () => {
+
+        playNote(r.midi, .5);
+
+        key.classList.add("active");
+
+        setTimeout(() => {
+            key.classList.remove("active");
+        }, 120);
+
+    });
+
+    piano.appendChild(key);
+
+});
+
+/* =========================================================
+   BUILD GRID
+========================================================= */
+
+rows.forEach((r, index) => {
+
+    const row = document.createElement("div");
+
+    row.className =
+        "row " +
+        (blackNotes.has(r.note) ? "black" : "");
+
+    row.style.top = `${index * 48}px`;
+
+    grid.appendChild(row);
+
+});
+
+/* =========================================================
+   TIMELINE
+========================================================= */
+
+const BAR_WIDTH = 300;
+
+for (let i = 1; i <= 12; i++) {
+
+    const bar = document.createElement("div");
+
+    bar.className = "bar";
+
+    bar.style.left = `${(i - 1) * BAR_WIDTH}px`;
+
+    bar.textContent = i;
+
+    timeline.appendChild(bar);
+
+}
+
+/* =========================================================
+   AUDIO ENGINE
+========================================================= */
+
+let audioContext = null;
+
+function getAudioContext() {
+
+    if (!audioContext) {
+        audioContext =
+            new (window.AudioContext ||
+                 window.webkitAudioContext)();
+    }
+
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    return audioContext;
+}
+
+function midiToFrequency(midi) {
+
+    return 440 *
+        Math.pow(
+            2,
+            (midi - 69) / 12
+        );
+}
+
+function playNote(midi, duration = .7) {
+
+    const ctx = getAudioContext();
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const frequency = midiToFrequency(midi);
+
+    const instrument = instrumentInput.value;
+
+    if (instrument === "piano") {
+
+        oscillator.type = "triangle";
+
+    } else if (instrument === "synth") {
+
+        oscillator.type = "sawtooth";
+
+    } else if (instrument === "bell") {
+
+        oscillator.type = "sine";
+
+    } else {
+
+        oscillator.type = "square";
+
+    }
+
+    oscillator.frequency.setValueAtTime(
+        frequency,
+        ctx.currentTime
+    );
+
+    if (instrument === "bell") {
+
+        oscillator.frequency.exponentialRampToValueAtTime(
+            frequency * 2,
+            ctx.currentTime + .03
+        );
+
+    }
+
+    const volume =
+        Number(volumeInput.value);
+
+    gain.gain.setValueAtTime(
+        .0001,
+        ctx.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        Math.max(.001, volume * .25),
+        ctx.currentTime + .015
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        .0001,
+        ctx.currentTime + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+        ctx.currentTime + duration + .05
+    );
+}
+
+/* =========================================================
+   NOTE DATA
+========================================================= */
+
+let notes = [];
+
+let nextId = 1;
+
+function createNote(midi, x, width = 75) {
+
+    const rowIndex =
+        rows.findIndex(r => r.midi === midi);
+
+    if (rowIndex < 0) return;
+
+    const note = {
+
+        id: nextId++,
+        midi: midi,
+        x: Math.max(0, x),
+        width: Math.max(25, width)
+
+    };
+
+    notes.push(note);
+
+    renderNotes();
+
+    return note;
+}
+
+/* =========================================================
+   RENDER NOTES
+========================================================= */
+
+function renderNotes() {
+
+    document
+        .querySelectorAll(".note")
+        .forEach(n => n.remove());
+
+    notes.forEach(note => {
+
+        const rowIndex =
+            rows.findIndex(
+                r => r.midi === note.midi
+            );
+
+        if (rowIndex < 0) return;
+
+        const element =
+            document.createElement("div");
+
+        element.className = "note";
+
+        element.dataset.id = note.id;
+
+        element.style.left =
+            `${note.x}px`;
+
+        element.style.top =
+            `${rowIndex * 48 + 5}px`;
+
+        element.style.width =
+            `${note.width}px`;
+
+        element.textContent =
+            rows[rowIndex].name;
+
+        const resize =
+            document.createElement("div");
+
+        resize.className = "resize";
+
+        element.appendChild(resize);
+
+        /* Note click */
+
+        element.addEventListener(
+            "pointerdown",
+            function(e) {
+
+                e.stopPropagation();
+
+                if (currentTool === "erase") {
+
+                    deleteNote(note.id);
+
+                    return;
+                }
+
+                playNote(note.midi, .4);
+
+                selectedNote = note;
+
+                dragNote(
+                    e,
+                    note,
+                    element
+                );
+
+            }
+        );
+
+        element.addEventListener(
+            "contextmenu",
+            function(e) {
+
+                e.preventDefault();
+
+                deleteNote(note.id);
+
+            }
+        );
+
+        resize.addEventListener(
+            "pointerdown",
+            function(e) {
+
+                e.stopPropagation();
+
+                resizeNote(
+                    e,
+                    note,
+                    element
+                );
+
+            }
+        );
+
+        roll.appendChild(element);
+
+    });
+
+}
+
+/* =========================================================
+   DRAG NOTE
+========================================================= */
+
+let selectedNote = null;
+
+function dragNote(e, note, element) {
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const originalX = note.x;
+    const originalMidi = note.midi;
+
+    const rowHeight = 48;
+
+    function move(ev) {
+
+        const dx =
+            ev.clientX - startX;
+
+        const dy =
+            ev.clientY - startY;
+
+        let newX =
+            originalX + dx;
+
+        let row =
+            Math.round(
+                (originalMidi - rows[0].midi)
+                - dy / rowHeight
+            );
+
+        /*
+         * Easier MIDI calculation
+         */
+
+        let midi =
+            originalMidi -
+            Math.round(dy / rowHeight);
+
+        midi = Math.max(
+            rows[rows.length - 1].midi,
+            Math.min(
+                rows[0].midi,
+                midi
+            )
+        );
+
+        if (snapEnabled) {
+
+            newX =
+                Math.round(
+                    newX / 37.5
+                ) * 37.5;
+
+        }
+
+        note.x =
+            Math.max(0, newX);
+
+        note.midi = midi;
+
+        renderNotes();
+
+    }
+
+    function up() {
+
+        window.removeEventListener(
+            "pointermove",
+            move
+        );
+
+        window.removeEventListener(
+            "pointerup",
+            up
+        );
+
+    }
+
+    window.addEventListener(
+        "pointermove",
+        move
+    );
+
+    window.addEventListener(
+        "pointerup",
+        up
+    );
+
+}
+
+/* =========================================================
+   RESIZE NOTE
+========================================================= */
+
+function resizeNote(e, note, element) {
+
+    const startX = e.clientX;
+
+    const originalWidth =
+        note.width;
+
+    function move(ev) {
+
+        const dx =
+            ev.clientX - startX;
+
+        let width =
+            originalWidth + dx;
+
+        width =
+            Math.max(25, width);
+
+        if (snapEnabled) {
+
+            width =
+                Math.round(
+                    width / 37.5
+                ) * 37.5;
+
+        }
+
+        note.width = width;
+
+        renderNotes();
+
+    }
+
+    function up() {
+
+        window.removeEventListener(
+            "pointermove",
+            move
+        );
+
+        window.removeEventListener(
+            "pointerup",
+            up
+        );
+
+    }
+
+    window.addEventListener(
+        "pointermove",
+        move
+    );
+
+    window.addEventListener(
+        "pointerup",
+        up
+    );
+
+}
+
+/* =========================================================
+   DRAW NOTES
+========================================================= */
+
+let currentTool = "draw";
+
+let snapEnabled = true;
+
+grid.addEventListener(
+    "pointerdown",
+    function(e) {
+
+        if (currentTool !== "draw")
+            return;
+
+        const rect =
+            grid.getBoundingClientRect();
+
+        let x =
+            e.clientX -
+            rect.left +
+            roll.parentElement.scrollLeft;
+
+        let y =
+            e.clientY -
+            rect.top +
+            roll.parentElement.scrollTop;
+
+        let rowIndex =
+            Math.floor(
+                y / 48
+            );
+
+        if (
+            rowIndex < 0 ||
+            rowIndex >= rows.length
+        ) {
+            return;
+        }
+
+        if (snapEnabled) {
+
+            x =
+                Math.floor(
+                    x / 37.5
+                ) * 37.5;
+
+        }
+
+        createNote(
+            rows[rowIndex].midi,
+            x,
+            Number(lengthInput.value)
+        );
+
+        playNote(
+            rows[rowIndex].midi,
+            .35
+        );
+
+    }
+);
+
+/* =========================================================
+   DELETE
+========================================================= */
+
+function deleteNote(id) {
+
+    notes =
+        notes.filter(
+            n => n.id !== id
+        );
+
+    renderNotes();
+
+}
+
+/* =========================================================
+   TOOL BUTTONS
+========================================================= */
+
+function setTool(tool) {
+
+    currentTool = tool;
+
+    drawBtn.classList.toggle(
+        "active",
+        tool === "draw"
+    );
+
+    eraseBtn.classList.toggle(
+        "active",
+        tool === "erase"
+    );
+
+}
+
+drawBtn.addEventListener(
+    "click",
+    () => setTool("draw")
+);
+
+eraseBtn.addEventListener(
+    "click",
+    () => setTool("erase")
+);
+
+snapBtn.addEventListener(
+    "click",
+    () => {
+
+        snapEnabled =
+            !snapEnabled;
+
+        snapBtn.classList.toggle(
+            "active",
+            snapEnabled
+        );
+
+    }
+);
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+clearBtn.addEventListener(
+    "click",
+    () => {
+
+        notes = [];
+
+        stopPlayback();
+
+        renderNotes();
+
+    }
+);
+
+/* =========================================================
+   DEMO SONG
+========================================================= */
+
+addDemoBtn.addEventListener(
+    "click",
+    () => {
+
+        notes = [];
+
+        const melody = [
+            [68, 0],
+            [72, 75],
+            [75, 150],
+            [77, 225],
+            [75, 300],
+            [72, 375],
+            [70, 450],
+            [68, 525],
+            [72, 600],
+            [75, 675],
+            [77, 750],
+            [80, 825]
+        ];
+
+        melody.forEach(
+            ([midi, x]) => {
+
+                createNote(
+                    midi,
+                    x,
+                    70
+                );
+
+            }
+        );
+
+        renderNotes();
+
+    }
+);
+
+/* =========================================================
+   PLAYBACK
+========================================================= */
+
+let playing = false;
+
+let animationFrame = null;
+
+let playbackStart = 0;
+
+let playbackPosition = 0;
+
+function getBeatDuration() {
+
+    const bpm =
+        Math.max(
+            40,
+            Math.min(
+                240,
+                Number(bpmInput.value) || 120
+            )
+        );
+
+    return 60000 / bpm;
+
+}
+
+function playSong() {
+
+    if (playing) return;
+
+    if (notes.length === 0)
+        return;
+
+    getAudioContext();
+
+    playing = true;
+
+    playbackStart =
+        performance.now() -
+        playbackPosition;
+
+    schedulePlayback();
+
+}
+
+function schedulePlayback() {
+
+    if (!playing)
+        return;
+
+    const now =
+        performance.now();
+
+    playbackPosition =
+        now -
+        playbackStart;
+
+    const beat =
+        getBeatDuration();
+
+    const pixelsPerBeat = 75;
+
+    const currentX =
+        playbackPosition /
+        beat *
+        pixelsPerBeat;
+
+    playhead.style.left =
+        `${currentX}px`;
+
+    notes.forEach(note => {
+
+        const noteTime =
+            note.x /
+            pixelsPerBeat *
+            beat;
+
+        if (
+            Math.abs(
+                noteTime -
+                playbackPosition
+            ) < 30 &&
+            !note.played
+        ) {
+
+            note.played = true;
+
+            playNote(
+                note.midi,
+                Math.max(
+                    .1,
+                    note.width /
+                    pixelsPerBeat *
+                    beat /
+                    1000
+                )
+            );
+
+        }
+
+    });
+
+    const maxX =
+        Math.max(
+            ...notes.map(
+                n => n.x + n.width
+            )
+        );
+
+    const totalTime =
+        maxX /
+        pixelsPerBeat *
+        beat;
+
+    if (
+        playbackPosition >
+        totalTime + 200
+    ) {
+
+        stopPlayback();
+
+        return;
+
+    }
+
+    animationFrame =
+        requestAnimationFrame(
+            schedulePlayback
+        );
+
+}
+
+function stopPlayback() {
+
+    playing = false;
+
+    cancelAnimationFrame(
+        animationFrame
+    );
+
+    animationFrame = null;
+
+    playbackPosition = 0;
+
+    playhead.style.left = "0px";
+
+    notes.forEach(
+        n => n.played = false
+    );
+
+}
+
+playBtn.addEventListener(
+    "click",
+    playSong
+);
+
+stopBtn.addEventListener(
+    "click",
+    stopPlayback
+);
+
+/* =========================================================
+   METRONOME
+========================================================= */
+
+let metronome = false;
+
+metronomeBtn.addEventListener(
+    "click",
+    () => {
+
+        metronome =
+            !metronome;
+
+        metronomeBtn.textContent =
+            metronome
+                ? "Metronome: ON"
+                : "Metronome: OFF";
+
+    }
+);
+
+/* =========================================================
+   COMPUTER KEYBOARD
+========================================================= */
+
+const keyboardMap = {
+
+    "a": 60,
+    "w": 61,
+    "s": 62,
+    "e": 63,
+    "d": 64,
+    "f": 65,
+    "t": 66,
+    "g": 67,
+    "y": 68,
+    "h": 69,
+    "u": 70,
+    "j": 71,
+    "k": 72,
+    "o": 73,
+    "l": 74,
+    "p": 75,
+    ";": 76
+
+};
+
+document.addEventListener(
+    "keydown",
+    function(e) {
+
+        if (
+            e.target.tagName === "INPUT" ||
+            e.target.tagName === "SELECT"
+        ) {
+            return;
+        }
+
+        const midi =
+            keyboardMap[
+                e.key.toLowerCase()
+            ];
+
+        if (
+            midi !== undefined &&
+            !e.repeat
+        ) {
+
+            playNote(
+                midi,
+                .5
+            );
+
+            const key =
+                document.querySelector(
+                    `.key[data-midi="${midi}"]`
+                );
+
+            if (key) {
+
+                key.classList.add(
+                    "active"
+                );
+
+                setTimeout(
+                    () => key.classList.remove(
+                        "active"
+                    ),
+                    120
+                );
+
+            }
+
+        }
+
+    }
+);
+
+/* =========================================================
+   UNDO / REDO
+========================================================= */
+
+let history = [];
+
+document.getElementById("undoBtn")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (notes.length > 0) {
+
+                history.push(
+                    notes.pop()
+                );
+
+                renderNotes();
+
+            }
+
+        }
+    );
+
+document.getElementById("redoBtn")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (history.length > 0) {
+
+                notes.push(
+                    history.pop()
+                );
+
+                renderNotes();
+
+            }
+
+        }
+    );
+
+/* =========================================================
+   INITIAL DEMO
+========================================================= */
+
+createNote(68, 0, 75);
+createNote(72, 75, 75);
+createNote(75, 150, 75);
+createNote(77, 225, 75);
+createNote(72, 300, 75);
+createNote(68, 375, 75);
+
+renderNotes();
+
+</script>
+
+</body>
+</html>
